@@ -74,6 +74,10 @@ class Lexer:
                 if posicion == longitud:
                     self.tokens.append(Token(codigo[inicio - 1:posicion], 'Error', 'Cadena sin cerrar', inicio - 1))
                     break
+                    # Llamar a la función analizar_contenido para procesar el contenido entre <>
+                contenido_tokens, pos = self.analizar_contenido(codigo, inicio)
+                self.tokens.extend(contenido_tokens)
+                posicion = pos
             # Símbolos de cerrar
             elif char in ['>', '%']:
                 self.tokens.append(Token(char, 'Símbolo', 'Cerrar', posicion))
@@ -126,6 +130,27 @@ class Lexer:
             elif char.isalpha():
                 self.tokens.append(Token(char, 'Valor', 'Caracter', posicion))
                 posicion += 1
+
+                # Números enteros y decimales
+            elif char.isdigit() or char == '.':
+                start = posicion
+                has_decimal = False
+
+                while posicion < longitud:
+                    if codigo[posicion] == '.':
+                        # Verifica si ya hay un punto decimal presente
+                        if has_decimal:
+                            break  # Si ya hay un punto decimal, termina el análisis
+                        has_decimal = True  # Marca que se ha encontrado un punto decimal
+                    elif not codigo[posicion].isdigit():
+                        # Si el carácter no es un dígito ni un punto decimal, termina el análisis
+                        break
+                    posicion += 1
+
+                if has_decimal:
+                    self.tokens.append(Token(codigo[start:posicion], 'Valor', 'Decimal', start))
+                else:
+                    self.tokens.append(Token(codigo[start:posicion], 'Valor', 'Entero', start))
             elif char == '<':
                 cadena = ''
                 posicion += 1
@@ -187,4 +212,36 @@ class Lexer:
                 posicion += 1
 
         return self.tokens
+
+    def analizar_contenido(self, codigo, posicion):
+        tokens = []
+        longitud = len(codigo)
+        while posicion < longitud:
+            char = codigo[posicion]
+            if char == '>':
+                return tokens, posicion
+            elif char.isdigit():
+                # Números enteros
+                start = posicion
+                while posicion < longitud and codigo[posicion].isdigit():
+                    posicion += 1
+                lexema = codigo[start:posicion]
+                tokens.append(Token(lexema, 'Valor', 'Entero', start))
+            elif char.isalpha():
+                # Identificadores o valores de caracteres
+                start = posicion
+                while posicion < longitud and (codigo[posicion].isalnum() or codigo[posicion] == '_'):
+                    posicion += 1
+                lexema = codigo[start:posicion]
+                tokens.append(Token(lexema, 'Identificador', 'Variable', start))
+            elif char.isspace():
+                # Ignorar espacios en blanco
+                posicion += 1
+            else:
+                # Caracteres no reconocidos
+                tokens.append(Token(char, 'Error', 'Caracter no reconocido', posicion))
+                posicion += 1
+        # Si no se cierra la agrupación, agregar error
+        tokens.append(Token('', 'Error', 'Agrupación sin cerrar', posicion))
+        return tokens, posicion
 
