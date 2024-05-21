@@ -2,7 +2,6 @@
 
 from token import Token
 
-
 class Lexer:
     def __init__(self):
         self.tokens = []
@@ -64,26 +63,24 @@ class Lexer:
             elif codigo[posicion:posicion + 2] == '->':
                 self.tokens.append(Token('->', 'Operador', 'Asignación', posicion))
                 posicion += 2
-            # Símbolos de abrir
-            elif char == '<':
-                self.tokens.append(Token('<', 'Símbolo', 'Abrir', posicion))
+                # Símbolos de abrir
+            elif char in ['<', '#']:
+                self.tokens.append(Token(char, 'Símbolo', 'Abrir', posicion))
                 posicion += 1
-            elif char == '#':
-                self.tokens.append(Token('#', 'Símbolo', 'Abrir', posicion))
-                posicion += 1
+                inicio = posicion
+                # Identificar cadenas sin cerrar
+                while posicion < longitud and codigo[posicion] != '>'and codigo[posicion] != '%':
+                    posicion += 1
+                if posicion == longitud:
+                    self.tokens.append(Token(codigo[inicio - 1:posicion], 'Error', 'Cadena sin cerrar', inicio - 1))
+                    break
             # Símbolos de cerrar
-            elif char == '>':
-                self.tokens.append(Token('>', 'Símbolo', 'Cerrar', posicion))
-                posicion += 1
-            elif char == '%':
-                self.tokens.append(Token('%', 'Símbolo', 'Cerrar', posicion))
+            elif char in ['>', '%']:
+                self.tokens.append(Token(char, 'Símbolo', 'Cerrar', posicion))
                 posicion += 1
             # Terminal y/o inicial
-            elif char == '¨':
-                self.tokens.append(Token('¨', 'Símbolo', 'Terminal/Inicial', posicion))
-                posicion += 1
-            elif char == "'":
-                self.tokens.append(Token("'", 'Símbolo', 'Terminal/Inicial', posicion))
+            elif char in ['¨', "'"]:
+                self.tokens.append(Token(char, 'Símbolo', 'Terminal/Inicial', posicion))
                 posicion += 1
             # Separadores de sentencias
             elif char == '_':
@@ -98,23 +95,16 @@ class Lexer:
                     self.tokens.append(Token('go', 'Palabra Reservada', 'Bucle', posicion))
                     posicion += 2
             # Palabras reservadas para decisiones
-            elif codigo[posicion:posicion + 2] == 'if':
-                if posicion + 5 <= longitud and codigo[posicion + 2:posicion + 5] == ')$¡':
-                    self.tokens.append(Token('if)$¡', 'Palabra Reservada', 'Decisión', posicion))
-                    posicion += 5
-                else:
-                    self.tokens.append(Token('if', 'Palabra Reservada', 'Decisión', posicion))
+            elif codigo[posicion:posicion + 2] == '$¡':
+                if posicion + 3 <= longitud and codigo[posicion:posicion + 4] == '$¡!':
+                    self.tokens.append(Token('$¡!', 'Palabra Reservada', 'Decisión', posicion))
+                    posicion += 4
+                elif posicion + 2 <= longitud and codigo[posicion:posicion + 3] == '$¡':
+                    self.tokens.append(Token('$¡', 'Palabra Reservada', 'Decisión', posicion))
+                    posicion += 3
+                elif posicion + 1 <= longitud and codigo[posicion:posicion + 2] == '$!':
+                    self.tokens.append(Token('$!', 'Palabra Reservada', 'Decisión', posicion))
                     posicion += 2
-            elif codigo[posicion:posicion + 7] == '(elseif)':
-                if posicion + 7 <= longitud and codigo[posicion + 7] == '$¡!':
-                    self.tokens.append(Token('(elseif)$¡!', 'Palabra Reservada', 'Decisión', posicion))
-                    posicion += 7
-                else:
-                    self.tokens.append(Token('(elseif)', 'Palabra Reservada', 'Decisión', posicion))
-                    posicion += 7
-            elif codigo[posicion:posicion + 4] == 'else':
-                self.tokens.append(Token('else', 'Palabra Reservada', 'Decisión', posicion))
-                posicion += 4
             # Palabras reservadas para clases
             elif codigo[posicion:posicion + 4] == 'tipe':
                 self.tokens.append(Token('tipe', 'Palabra Reservada', 'Clase', posicion))
@@ -132,17 +122,69 @@ class Lexer:
             elif codigo[posicion:posicion + 3] == 'chi':
                 self.tokens.append(Token('chi', 'Identificador', 'Clase', posicion))
                 posicion += 3
-            # Valores de asignación
-            elif char.isdigit():
-                numero = ''
-                while posicion < longitud and codigo[posicion].isdigit():
-                    numero += codigo[posicion]
+            # Valores de asignación - Caracteres
+            elif char.isalpha():
+                self.tokens.append(Token(char, 'Valor', 'Caracter', posicion))
+                posicion += 1
+            elif char == '<':
+                cadena = ''
+                posicion += 1
+                inicio = posicion
+                if posicion < longitud and codigo[posicion] == '<':
+                    while posicion < longitud and codigo[posicion] != '>':
+                        cadena += codigo[posicion]
+                        posicion += 1
+                    if posicion < longitud and codigo[posicion] == '>':
+                        posicion += 1
+                        self.tokens.append(Token(cadena, 'Valor', 'Cadena', inicio - 1))
+                    else:
+                        self.tokens.append(Token(cadena, 'Error', 'Cadena sin cerrar', inicio - 1))
+                        break  # Detener el análisis si la cadena no se cierra
+                else:
+                    self.tokens.append(Token('<', 'Símbolo', 'Abrir', posicion - 1))
+                    break  # Detener el análisis si el símbolo '<' no está seguido de otro '<'
+
+            elif char == '#':
+                cadena = ''
+                posicion += 1
+                inicio = posicion
+                if posicion < longitud and codigo[posicion] == '#':
+                    while posicion < longitud and codigo[posicion] != '%':
+                        cadena += codigo[posicion]
+                        posicion += 1
+                    if posicion < longitud and codigo[posicion] == '%':
+                        posicion += 1
+                        self.tokens.append(Token(cadena, 'Valor', 'Cadena', inicio - 1))
+                    else:
+                        self.tokens.append(Token(cadena, 'Error', 'Cadena sin cerrar', inicio - 1))
+                        break  # Detener el análisis si la cadena no se cierra
+                else:
+                    self.tokens.append(Token('#', 'Símbolo', 'Abrir', posicion - 1))
+                    break  # Detener el análisis si el símbolo '#' no está seguido de otro '#'
+
+            # Reconocimiento de caracteres específicos en <dfw
+            elif codigo[posicion] == '<' and codigo[posicion + 1] == 'd':
+                self.tokens.append(Token('<', 'Símbolo', 'Abrir', posicion))
+                posicion += 1
+                # Recorremos el alfabeto en minúsculas
+                for letra in 'abcdefghijklmnopqrstuvwxyz':
+                    if posicion + 1 < longitud and codigo[posicion + 1] == letra:
+                        self.tokens.append(Token(letra, 'Caracter', 'Especifico', posicion + 1))
+                        posicion += 1
+                # Recorremos el alfabeto en mayúsculas
+                for letra in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
+                    if posicion + 1 < longitud and codigo[posicion + 1] == letra:
+                        self.tokens.append(Token(letra, 'Caracter', 'Especifico', posicion + 1))
+                        posicion += 1
+                if posicion + 1 < longitud and codigo[posicion + 1] == 'w':
+                    self.tokens.append(Token('w', 'Caracter', 'Especifico', posicion + 1))
                     posicion += 1
-                self.tokens.append(Token(numero, 'Valor', 'Entero', posicion - len(numero)))
-            # Agrega aquí más lógica para otros tokens, como reales, cadenas, caracteres, etc.
+                self.tokens.append(Token('>', 'Símbolo', 'Cerrar', posicion + 1))
+                posicion += 1
             else:
                 # Token no reconocido
                 self.tokens.append(Token(char, 'Error', 'Token no reconocido', posicion))
                 posicion += 1
 
         return self.tokens
+
