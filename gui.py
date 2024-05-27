@@ -7,15 +7,19 @@ from token import Token
 class LexerGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Analizador Léxico - MyFirst")
+        self.root.title("Analizador Léxico")
+
+        # Frame para contener el Label y el Text
+        self.input_frame = tk.Frame(root)
+        self.input_frame.pack(pady=20)
+
+        # Label para el campo de texto
+        self.label = tk.Label(self.input_frame, text="Expresión Regular:")
+        self.label.grid(row=0, column=0, padx=5)
 
         # Área de texto
-        self.text_area = tk.Text(root, height=20, width=80)
-        self.text_area.pack(pady=20)
-
-        # Botón para realizar el análisis léxico
-        self.analyze_button = tk.Button(root, text="Analizar", command=self.analizar_codigo)
-        self.analyze_button.pack(pady=10)
+        self.text_area = tk.Text(self.input_frame, height=1, width=20)
+        self.text_area.grid(row=0, column=1, padx=5)
 
         # Tabla para mostrar los tokens
         self.tree = ttk.Treeview(root, columns=("Lexema", "Categoría", "Subcategoría", "Posición"), show="headings")
@@ -24,6 +28,10 @@ class LexerGUI:
         self.tree.heading("Subcategoría", text="Subcategoría")
         self.tree.heading("Posición", text="Posición")
         self.tree.pack()
+
+        # Botón para realizar el análisis léxico
+        self.analyze_button = tk.Button(root, text="Analizar", command=self.analizar_codigo)
+        self.analyze_button.pack(pady=10)
 
         self.lexer = Lexer()
 
