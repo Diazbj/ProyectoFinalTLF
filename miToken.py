@@ -1,4 +1,4 @@
-# token.py
+# miToken.py
 
 class Token:
     def __init__(self, lexema, categoria, subcategoria, posicion):

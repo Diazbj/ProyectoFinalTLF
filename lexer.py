@@ -1,6 +1,4 @@
-# lexer.py
-
-from token import Token
+from miToken import Token
 
 class Lexer:
     def __init__(self):
@@ -13,6 +11,11 @@ class Lexer:
 
         while posicion < longitud:
             char = codigo[posicion]
+
+            # Omitir espacios y saltos de línea
+            if char.isspace():
+                posicion += 1
+                continue
 
             # Operadores aritméticos
             if codigo[posicion:posicion + 3] == 'add':
@@ -63,18 +66,18 @@ class Lexer:
             elif codigo[posicion:posicion + 2] == '->':
                 self.tokens.append(Token('->', 'Operador', 'Asignación', posicion))
                 posicion += 2
-                # Símbolos de abrir
+            # Símbolos de abrir
             elif char in ['<', '#']:
                 self.tokens.append(Token(char, 'Símbolo', 'Abrir', posicion))
                 posicion += 1
                 inicio = posicion
                 # Identificar cadenas sin cerrar
-                while posicion < longitud and codigo[posicion] != '>'and codigo[posicion] != '%':
+                while posicion < longitud and codigo[posicion] not in ['>', '%']:
                     posicion += 1
                 if posicion == longitud:
                     self.tokens.append(Token(codigo[inicio - 1:posicion], 'Error', 'Cadena sin cerrar', inicio - 1))
                     break
-                    # Llamar a la función analizar_contenido para procesar el contenido entre <>
+                # Llamar a la función analizar_contenido para procesar el contenido entre <>
                 contenido_tokens, pos = self.analizar_contenido(codigo, inicio)
                 self.tokens.extend(contenido_tokens)
                 posicion = pos
@@ -130,23 +133,18 @@ class Lexer:
             elif char.isalpha():
                 self.tokens.append(Token(char, 'Valor', 'Caracter', posicion))
                 posicion += 1
-
-                # Números enteros y decimales
+            # Números enteros y decimales
             elif char.isdigit() or char == '.':
                 start = posicion
                 has_decimal = False
-
                 while posicion < longitud:
                     if codigo[posicion] == '.':
-                        # Verifica si ya hay un punto decimal presente
                         if has_decimal:
-                            break  # Si ya hay un punto decimal, termina el análisis
-                        has_decimal = True  # Marca que se ha encontrado un punto decimal
+                            break
+                        has_decimal = True
                     elif not codigo[posicion].isdigit():
-                        # Si el carácter no es un dígito ni un punto decimal, termina el análisis
                         break
                     posicion += 1
-
                 if has_decimal:
                     self.tokens.append(Token(codigo[start:posicion], 'Valor', 'Decimal', start))
                 else:
@@ -164,11 +162,10 @@ class Lexer:
                         self.tokens.append(Token(cadena, 'Valor', 'Cadena', inicio - 1))
                     else:
                         self.tokens.append(Token(cadena, 'Error', 'Cadena sin cerrar', inicio - 1))
-                        break  # Detener el análisis si la cadena no se cierra
+                        break
                 else:
                     self.tokens.append(Token('<', 'Símbolo', 'Abrir', posicion - 1))
-                    break  # Detener el análisis si el símbolo '<' no está seguido de otro '<'
-
+                    break
             elif char == '#':
                 cadena = ''
                 posicion += 1
@@ -182,21 +179,17 @@ class Lexer:
                         self.tokens.append(Token(cadena, 'Valor', 'Cadena', inicio - 1))
                     else:
                         self.tokens.append(Token(cadena, 'Error', 'Cadena sin cerrar', inicio - 1))
-                        break  # Detener el análisis si la cadena no se cierra
+                        break
                 else:
                     self.tokens.append(Token('#', 'Símbolo', 'Abrir', posicion - 1))
-                    break  # Detener el análisis si el símbolo '#' no está seguido de otro '#'
-
-            # Reconocimiento de caracteres específicos en <dfw
+                    break
             elif codigo[posicion] == '<' and codigo[posicion + 1] == 'd':
                 self.tokens.append(Token('<', 'Símbolo', 'Abrir', posicion))
                 posicion += 1
-                # Recorremos el alfabeto en minúsculas
                 for letra in 'abcdefghijklmnopqrstuvwxyz':
                     if posicion + 1 < longitud and codigo[posicion + 1] == letra:
                         self.tokens.append(Token(letra, 'Caracter', 'Especifico', posicion + 1))
                         posicion += 1
-                # Recorremos el alfabeto en mayúsculas
                 for letra in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ':
                     if posicion + 1 < longitud and codigo[posicion + 1] == letra:
                         self.tokens.append(Token(letra, 'Caracter', 'Especifico', posicion + 1))
@@ -207,7 +200,6 @@ class Lexer:
                 self.tokens.append(Token('>', 'Símbolo', 'Cerrar', posicion + 1))
                 posicion += 1
             else:
-                # Token no reconocido
                 self.tokens.append(Token(char, 'Error', 'Token no reconocido', posicion))
                 posicion += 1
 
@@ -221,27 +213,21 @@ class Lexer:
             if char == '>':
                 return tokens, posicion
             elif char.isdigit():
-                # Números enteros
                 start = posicion
                 while posicion < longitud and codigo[posicion].isdigit():
                     posicion += 1
                 lexema = codigo[start:posicion]
                 tokens.append(Token(lexema, 'Valor', 'Entero', start))
             elif char.isalpha():
-                # Identificadores o valores de caracteres
                 start = posicion
                 while posicion < longitud and (codigo[posicion].isalnum() or codigo[posicion] == '_'):
                     posicion += 1
                 lexema = codigo[start:posicion]
                 tokens.append(Token(lexema, 'Identificador', 'Variable', start))
             elif char.isspace():
-                # Ignorar espacios en blanco
                 posicion += 1
             else:
-                # Caracteres no reconocidos
                 tokens.append(Token(char, 'Error', 'Caracter no reconocido', posicion))
                 posicion += 1
-        # Si no se cierra la agrupación, agregar error
         tokens.append(Token('', 'Error', 'Agrupación sin cerrar', posicion))
         return tokens, posicion
-

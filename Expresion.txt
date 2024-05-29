@@ -1,0 +1,8 @@
+ gamma <
+            <# saludo - > saludo + ¿s? "¡"
+        >
+        gamma <
+            gamma <
+                saludo - > saludo + gauss
+            >
+        >
